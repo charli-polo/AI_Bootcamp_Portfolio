@@ -149,7 +149,7 @@ def main():
         """)
     
     # Changed to only two tabs
-    tab1, tab2 = st.tabs(["Finetuning", "Inference"])
+    tab1, tab2, tab3 = st.tabs(["Finetuning", "Inference", "Model Card"])
     
     # Load notebooks
     finetuning_notebook = load_notebook("assets/3_Finetuninng_Gemma_2b_it_AT.ipynb")
@@ -165,41 +165,101 @@ def main():
         for cell in inference_notebook['cells']:
             display_notebook_cell(cell)
             
-    # Commented out Try It Out tab
-    """
     with tab3:
-        st.header("Try the Finetuned Model")
+        st.header("🤖 Gemma 2B Instruct Fine-tuned Model Card")
         
-        if not st.session_state.hf_token:
-            st.warning("Please enter your HuggingFace token in the sidebar first!")
-        else:
-            if st.button("Load Model"):
-                with st.spinner("Loading model..."):
-                    model, tokenizer = load_model()
-                    if model and tokenizer:
-                        st.session_state.model = model
-                        st.session_state.tokenizer = tokenizer
-                        st.success("Model loaded successfully!")
+        # Model Overview
+        st.markdown("""
+        ## Model Overview
+        This is a fine-tuned version of Google's Gemma 2B model, specifically optimized for Python code instruction generation.
+        
+        ### Key Specifications
+        - **Base Model:** google/gemma-2b-it
+        - **Model Size:** 2.51B parameters
+        - **Format:** Safetensors
+        - **Tensor Type:** FP16
+        """)
+        
+        # Evaluation Results
+        with st.expander("📊 Evaluation Results", expanded=True):
+            st.markdown("""
+            ### Performance Metrics
             
-            if st.session_state.model and st.session_state.tokenizer:
-                query = st.text_area(
-                    "Enter your prompt:",
-                    height=100,
-                    placeholder="Write a Python function that..."
-                )
-                
-                if st.button("Generate"):
-                    with st.spinner("Generating response..."):
-                        response = get_completion(
-                            query, 
-                            st.session_state.model, 
-                            st.session_state.tokenizer
-                        )
-                        st.markdown("### Response:")
-                        st.markdown(response)
-            elif st.session_state.hf_token:
-                st.info("Please load the model first.")
-    """
+            #### Perplexity Scores
+            - **Base Model:** 53.13
+            - **Fine-tuned Model:** 1.99
+            
+            *A significant reduction in perplexity indicates the model's improved ability to predict Python code tokens after fine-tuning.*
+            
+            #### BLEU Scores
+            - **Base Model:** 0.4488
+            - **Fine-tuned Model:** 0.4101
+            
+            *While BLEU scores show a slight decrease, perplexity improvements suggest better code generation capabilities.*
+            
+            ### Understanding the Metrics
+            
+            **Perplexity:**
+            - Lower values indicate better prediction capability
+            - The dramatic reduction from 53.13 to 1.99 shows significant improvement in the model's understanding of Python code patterns
+            - Calculated using sliding window approach for more accurate assessment
+            
+            **BLEU Score Context:**
+            - Measures translation quality between 0 and 1
+            - While slightly lower in the fine-tuned model, BLEU scores should be considered alongside other metrics
+            - Code generation often has multiple valid solutions, making BLEU scores less definitive for code tasks
+            """)
+        
+        # Model Usage
+        with st.expander("🛠️ Usage & Capabilities", expanded=True):
+            st.markdown("""
+            ### Primary Use Cases
+            - Python code generation
+            - Code instruction following
+            - Technical documentation generation
+            
+            ### Generation Parameters
+            ```python
+            generation_config = {
+                "max_length": 2500,
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "top_k": 50
+            }
+            ```
+            """)
+        
+        # Technical Details
+        with st.expander("⚙️ Technical Details", expanded=True):
+            st.markdown("""
+            ### Training Configuration
+            - Fine-tuned from google/gemma-2b-it base model
+            - Optimized for instruction following
+            - Uses FP16 precision for efficient inference
+            - Evaluation performed on dedicated test set
+            
+            ### Evaluation Process
+            - Models evaluated using multiple metrics (BLEU, ROUGE, METEOR)
+            - Test data includes diverse Python coding tasks
+            - Evaluation performed with torch.no_grad() for efficiency
+            """)
+        
+        # Links and References
+        st.markdown("""
+        ### 🔗 Important Links
+        - [Model on Hugging Face](https://huggingface.co/at2507/gemma-2b-instruct-ft-python-code-instructions)
+        - [Base Model (Gemma 2B)](https://huggingface.co/google/gemma-2b-it)
+        """)
+        
+        # Limitations and Disclaimers
+        st.warning("""
+        **Limitations & Considerations:**
+        - While perplexity shows dramatic improvement, BLEU scores indicate a trade-off in exact matching
+        - Model may generate alternative but valid code solutions
+        - Performance may vary based on input complexity
+        - Best results when used with clear, well-structured prompts
+        """)
 
 if __name__ == "__main__":
     main()
