@@ -9,10 +9,15 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.vectorstores import FAISS
 import warnings
 import os
+from utils.token_manager import get_openai_token, set_openai_token, validate_openai_token
 
 # Initialize OpenAI client with API key
-def init_openai(api_key):
-    openai.api_key = api_key
+def init_openai():
+    token = get_openai_token()
+    if not token:
+        st.warning("Please enter your OpenAI API token")
+        st.stop()
+    openai.api_key = token
     return openai
 
 # Function to get embeddings using OpenAI API v0.28.1
@@ -102,7 +107,7 @@ with st.sidebar:
     )
     if openai_api_key:
         # Initialize OpenAI with the API key
-        openai_client = init_openai(openai_api_key)
+        openai_client = init_openai()
         
         if not openai_api_key.startswith('sk-'):
             st.warning('Please enter a valid OpenAI API key!', icon='⚠️')
