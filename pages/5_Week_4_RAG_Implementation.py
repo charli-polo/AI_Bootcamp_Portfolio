@@ -12,14 +12,23 @@ import os
 from utils.token_manager import get_openai_client, init_openai
 
 # Initialize OpenAI client with API key
-def init_openai():
-    client = get_openai_client()
-    if not client:
-        st.warning("Please enter your OpenAI API token")
-        st.stop()
-    return client
+def init_openai(api_key=None):
+    """Initialize OpenAI client with API key"""
+    if not api_key:
+        return None
+        
+    if not api_key.startswith('sk-'):
+        return None
+        
+    try:
+        openai.api_key = api_key
+        st.session_state.openai_client = openai
+        return openai
+    except Exception as e:
+        st.error(f"Error initializing OpenAI client: {e}")
+        return None
 
-# Function to get embeddings using OpenAI API v0.28.1
+# Function to get embeddings using OpenAI API
 def get_embedding(text, model="text-embedding-3-small"):
     client = get_openai_client()
     if not client:
