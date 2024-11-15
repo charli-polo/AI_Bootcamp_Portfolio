@@ -1,7 +1,7 @@
 import streamlit as st
 from pathlib import Path
 import json
-import torch
+# import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from huggingface_hub import login
 import subprocess
