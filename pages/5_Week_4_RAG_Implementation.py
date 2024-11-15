@@ -129,7 +129,8 @@ Instructions:
 # Chat input
 user_input = st.text_input("Enter your message:", placeholder="e.g., Where is my package? or Track my parcel...")
 
-if user_input and openai_api_key and st.session_state.index is not None:
+# Check for API key and process input
+if user_input and api_key and st.session_state.index is not None:
     with st.spinner("Processing your request..."):
         try:
             # Create query embedding and search
@@ -139,8 +140,9 @@ if user_input and openai_api_key and st.session_state.index is not None:
             # Create structured prompt
             structured_prompt = f"Context:\n{context}\n\nQuery:\n{user_input}\n\nResponse:"
             
-            # Get completion from OpenAI using v0.28.1 format
-            chat = openai.ChatCompletion.create(
+            # Get completion from OpenAI using cached client
+            client = get_openai_client()
+            chat = client.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": System_Prompt},
@@ -156,5 +158,5 @@ if user_input and openai_api_key and st.session_state.index is not None:
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
-elif not openai_api_key:
+elif not api_key:
     st.warning("Please enter your OpenAI API key in the sidebar to continue.")
