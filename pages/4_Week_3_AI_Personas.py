@@ -13,7 +13,7 @@ st.set_page_config(
 st.markdown("""
 <style>
     body {
-        color: #5c4033;
+        color: #FFFFFF;
         background-color: #f5e6d3;
     }
     .stApp {
@@ -23,17 +23,29 @@ st.markdown("""
         background-repeat: no-repeat;
     }
     .stButton>button {
-        color: #f5e6d3;
+        color: #FFFFFF;
         background-color: #8b4513;
         border: 2px solid #5c4033;
     }
     .stTextInput>div>div>input {
-        color: #5c4033;
-        background-color: #f5e6d3;
+        color: #FFFFFF;
+        background-color: rgba(139, 69, 19, 0.7);
     }
     .stTextArea>div>div>textarea {
-        color: #5c4033;
-        background-color: #f5e6d3;
+        color: #FFFFFF;
+        background-color: rgba(139, 69, 19, 0.7);
+    }
+    .stMarkdown {
+        color: #FFFFFF !important;
+    }
+    .stTab {
+        color: #FFFFFF;
+    }
+    h1, h2, h3, h4, h5, h6, p {
+        color: #FFFFFF !important;
+    }
+    .stAlert > div {
+        color: #262730 !important;
     }
 </style>
 """, unsafe_allow_html=True)
