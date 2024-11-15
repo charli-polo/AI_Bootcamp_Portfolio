@@ -10,6 +10,8 @@ from langchain.vectorstores import FAISS
 import warnings
 import os
 from utils.token_manager import get_openai_client, init_openai
+from langchain.embeddings.base import Embeddings
+from typing import List
 
 # Initialize OpenAI client with API key
 def init_openai(api_key=None):
@@ -41,40 +43,105 @@ def get_embedding(text, model="text-embedding-3-small"):
         model=model
     )['data'][0]['embedding']
 
-def load_and_process_data(api_key):
-    """Load CSV data and create FAISS index"""
-    if st.session_state.index is None:
-        try:
-            # Load CSV data
-            loader = CSVLoader(
-                file_path="assets/Extended_Parcel_Information_Dataset.csv",
-                encoding="utf-8",
-                csv_args={'delimiter': ','}
-            )
-            documents = loader.load()
+def load_precomputed_embeddings(bot_selection):
+    """Load precomputed embeddings from assets folder based on bot selection"""
+    try:
+        # Select appropriate embeddings file
+        if bot_selection == "LogiLynk":
+            embeddings_path = "assets/parcel_embeddings.npy"
+        else:  # Wells FurGo
+            embeddings_path = "assets/cat_logistics_embeddings.npy"
             
-            # Create embeddings with API key
-            embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-            
-            # Create FAISS index
-            st.session_state.index = FAISS.from_documents(documents, embeddings)
-            st.session_state.documents = documents
-            
+        if os.path.exists(embeddings_path):
+            embeddings = np.load(embeddings_path)
+            st.session_state[f"{bot_selection}_embeddings"] = embeddings
             return True
-        except Exception as e:
-            st.error(f"Error loading data: {str(e)}")
+        else:
+            st.error(f"Embeddings file not found at {embeddings_path}")
             return False
-    return True
+    except Exception as e:
+        st.error(f"Error loading embeddings: {str(e)}")
+        return False
+
+# Add this class after the imports
+class PrecomputedEmbeddings(Embeddings):
+    """Custom embeddings class for pre-computed embeddings"""
+    def __init__(self, embeddings_array):
+        self.embeddings = embeddings_array
+        self._current_index = 0
+        self.embed_dim = len(embeddings_array[0])
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Return pre-computed embeddings for documents"""
+        batch_size = len(texts)
+        embeddings = self.embeddings[self._current_index:self._current_index + batch_size]
+        self._current_index += batch_size
+        return embeddings.tolist()
+    
+    def embed_query(self, text: str) -> List[float]:
+        """Return pre-computed embedding for query"""
+        # For queries, use OpenAI API
+        client = get_openai_client()
+        text = str(text).replace("\n", " ")
+        return client.Embedding.create(
+            input=[text],
+            model="text-embedding-3-small"
+        )['data'][0]['embedding']
+
+    def embed_many(self, texts: List[str]) -> List[List[float]]:
+        """Embed multiple texts"""
+        return self.embed_documents(texts)
+
+def load_and_process_data(api_key, bot_selection):
+    """Load CSV data and create FAISS index"""
+    try:
+        # Load appropriate CSV data and embeddings based on bot selection
+        if bot_selection == "LogiLynk":
+            file_path = "assets/Extended_Parcel_Information_Dataset.csv"
+            embeddings = OpenAIEmbeddings(openai_api_key=api_key)
+        else:  # Wells FurGo
+            file_path = "assets/large_ph_cat_logistics_clean_dataset.csv"
+            # Load pre-computed embeddings
+            embeddings_path = "assets/cat_logistics_embeddings.npy"
+            if os.path.exists(embeddings_path):
+                embeddings_array = np.load(embeddings_path)
+                embeddings = PrecomputedEmbeddings(embeddings_array)
+            else:
+                st.error(f"Embeddings file not found at {embeddings_path}")
+                return False
+        
+        # Load CSV data
+        loader = CSVLoader(
+            file_path=file_path,
+            encoding="utf-8",
+            csv_args={'delimiter': ','}
+        )
+        documents = loader.load()
+        
+        # Create FAISS index
+        st.session_state[f"{bot_selection}_index"] = FAISS.from_documents(documents, embeddings)
+        st.session_state[f"{bot_selection}_documents"] = documents
+        
+        return True
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        return False
 
 # Initialize session state
 if 'messages' not in st.session_state:
     st.session_state.messages = []
-if 'embeddings' not in st.session_state:
-    st.session_state.embeddings = None
-if 'index' not in st.session_state:
-    st.session_state.index = None
-if 'documents' not in st.session_state:
-    st.session_state.documents = None
+if 'LogiLynk_embeddings' not in st.session_state:
+    st.session_state.LogiLynk_embeddings = None
+if 'Wells FurGo_embeddings' not in st.session_state:
+    st.session_state['Wells FurGo_embeddings'] = None
+if 'LogiLynk_index' not in st.session_state:
+    st.session_state.LogiLynk_index = None
+if 'Wells FurGo_index' not in st.session_state:
+    st.session_state['Wells FurGo_index'] = None
+if 'LogiLynk_documents' not in st.session_state:
+    st.session_state.LogiLynk_documents = None
+if 'Wells FurGo_documents' not in st.session_state:
+    st.session_state['Wells FurGo_documents'] = None
 
 # Page config with light theme
 st.set_page_config(
@@ -132,33 +199,40 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar for API key and data loading
+# Move bot selection before sidebar
+# Add tab selection at the top (after CSS, before sidebar)
+bot_selection = st.radio(
+    "Select Chatbot:",
+    ["LogiLynk", "Wells FurGo"],
+    horizontal=True
+)
+
+# Then the sidebar section
 with st.sidebar:
     st.header("🔑 OpenAI Authentication")
     api_key = st.text_input("OpenAI API Key:", type="password")
     if api_key:
         if init_openai(api_key):
             st.success("OpenAI API key set successfully!")
-            # Initialize data and embeddings with API key
-            if load_and_process_data(api_key):
+            # Initialize data and embeddings with API key and bot selection
+            if load_and_process_data(api_key, bot_selection):
                 st.success("Data loaded successfully!")
             else:
                 st.error("Failed to load data")
         else:
             st.error("Invalid OpenAI API key")
 
-# Data viewer toggle in sidebar
+# Rest of the sidebar (Data viewer)
 with st.sidebar:
-    st.markdown("---")  # Add a visual separator
+    st.markdown("---")
     st.header("📊 Data Viewer")
     show_data = st.toggle("Show Dataset", value=False)
     
-    if show_data and st.session_state.documents is not None:
+    if show_data and st.session_state[f"{bot_selection}_documents"] is not None:
         try:
             # Convert documents to DataFrame
             data = []
-            for doc in st.session_state.documents:
-                # Split the content by newlines and create a dictionary
+            for doc in st.session_state[f"{bot_selection}_documents"]:
                 content_dict = {}
                 for line in doc.page_content.split('\n'):
                     if ':' in line:
@@ -173,37 +247,24 @@ with st.sidebar:
                 df,
                 use_container_width=True,
                 height=300,
-                hide_index=True,
-                column_config={
-                    col: st.column_config.TextColumn(
-                        col,
-                        width="medium",
-                        help=f"Column containing {col}"
-                    ) for col in df.columns
-                }
+                hide_index=True
             )
             
-            # Add download button
+            # Add download button with appropriate filename
             csv = df.to_csv(index=False).encode('utf-8')
+            filename = "parcel_data.csv" if bot_selection == "LogiLynk" else "cat_logistics_data.csv"
             st.download_button(
                 "Download Dataset",
                 csv,
-                "logistics_data.csv",
+                filename,
                 "text/csv",
-                key='download-csv'
+                key=f'download-csv-{bot_selection}'
             )
             
         except Exception as e:
             st.error(f"Error displaying data: {str(e)}")
     elif show_data:
         st.info("Please load data first by entering a valid API key.")
-
-# Add tab selection at the top
-bot_selection = st.radio(
-    "Select Chatbot:",
-    ["LogiLynk", "Wells FurGo"],
-    horizontal=True
-)
 
 # System prompts
 LOGILYNK_PROMPT = """
@@ -218,8 +279,57 @@ Instructions:
 """
 
 WELLS_FURGO_PROMPT = """
-Role: You are Wells FurGo, a knowledgeable and compassionate logistics support chatbot specializing in the transport and delivery of cat-related products and live cats in the Philippines...
-""" # (your full Wells FurGo prompt here)
+Role
+You are Wells FurGo, a knowledgeable and compassionate logistics support chatbot specializing in the transport and delivery of cat-related products and live cats in the Philippines.
+Your goal is to provide accurate, concise, and empathetic information about shipment tracking, delivery status, shipping costs, and common delivery issues.
+Your tone is warm, professional, and supportive, ensuring customers feel informed and reassured during every interaction. Also, use gen-z cat memes in conversation, as appropriate. Use cat-related puns as well.
+
+Instructions
+Shipment Tracking: When a customer asks about their shipment, request the tracking number, retrieve the latest status, and provide clear updates on the current location, condition, and estimated delivery date.
+Status Explanations: For inquiries about delivery statuses such as "In Transit" or "Delayed," offer simple, friendly explanations. Use relatable terms, and analogies if needed, to help customers understand the process.
+Cost Calculations: Guide customers in providing details like product weight, dimensions, and destination for calculating shipping costs. Provide an estimate based on the provided information and explain any factors influencing the cost.
+Issue Resolution: For issues such as delays, incorrect addresses, or lost shipments, respond with empathy. Explain next steps clearly, including any proactive measures taken to resolve or escalate the issue.
+Proactive Alerts: Offer customers the option to receive notifications about key updates, such as when shipments reach major checkpoints or encounter delays.
+FAQ Handling: Address frequently asked questions about handling live cats, special packaging requirements, and preferred delivery times with clarity and simplicity.
+Tone and Language: Maintain a professional and caring tone, particularly when discussing delays or challenges. Show understanding and reassurance.
+
+Context
+Wells FurGo serves as the primary customer service chatbot for a logistics company specializing in cat-related products and live cat transportation in the Philippines. You handle interactions with pet owners, cat cafés, and retail businesses that often have urgent concerns about the well-being and timely delivery of their cat shipments. Providing accurate and clear updates, coupled with empathy, is crucial for building trust and confidence, especially in sensitive situations like live animal transport.
+
+Constraints
+Privacy: Never disclose personal information beyond what has been verified and confirmed by the customer. Always ask for consent before discussing details about shipments.
+Conciseness: Ensure responses are clear and concise, avoiding logistics jargon unless necessary for context.
+Empathy in Communication: When addressing delays or challenges, prioritize empathy and acknowledge the customer's concern. Provide next steps and reassurance.
+Accuracy: Ensure all tracking updates, cost estimates, and shipment details are accurate and up-to-date.
+Jargon-Free Language: Use simple language to explain logistics terms or processes to customers, particularly when dealing with pet transport.
+
+Examples
+Shipment Tracking Inquiry
+
+Customer: "Where is my cat's shipment?"
+Wells FurGo: "I'd be happy to help! Could you please share your tracking number? I'll find the latest update for you, including the current location and estimated delivery date."
+
+Explanation of Delivery Status
+
+Customer: "What does 'Delayed' mean for my cat's shipment?"
+Wells FurGo: "A 'Delayed' status means that your cat's shipment has experienced a temporary hold-up, which could be due to factors like weather or logistical constraints. Rest assured, we’re monitoring the situation and will update you as soon as there’s progress."
+
+Cost Calculation Inquiry
+
+Customer: "How much will it cost to ship cat food weighing 5 kg to Cebu?"
+Wells FurGo: "I'd be glad to calculate that for you! Could you also share the package dimensions? Once I have those details, I’ll provide an estimate and explain any options for standard or expedited delivery."
+
+Issue Resolution for Delayed Live Cat Shipment
+
+Customer: "I’m worried about my cat's delayed shipment."
+Wells FurGo: "I understand your concern, and I’m here to help. Let me check the latest status of your shipment. If needed, we’ll coordinate with the carrier to ensure your cat’s safety and provide you with updates along the way."
+
+Proactive Update Offer
+
+Customer: "Can I get updates on my cat shipment's status?"
+Wells FurGo: "Absolutely! I can send you notifications whenever your cat’s shipment reaches a checkpoint or if there are any major updates. Would you like to set that up?"
+
+"""
 
 # Main content based on selection
 if bot_selection == "LogiLynk":
@@ -231,17 +341,17 @@ else:
     st.title("😺 Wells FurGo: Cat Logistics Support")
     st.write("Meow there! I'm Wells FurGo, your purr-fessional cat logistics expert. How can I assist you today?")
     System_Prompt = WELLS_FURGO_PROMPT
-    placeholder = "e.g., I need to ship my cat food to Cebu, or Track my cat's shipment"
+    placeholder = "e.g., What route is my cat product taking to reach Bacolod? the tracking number for my cat product is CAT-LIT-003"
 
 # Chat input
 user_input = st.text_input("Enter your message:", placeholder=placeholder)
 
 # Check for API key and process input
-if user_input and api_key and st.session_state.index is not None:
+if user_input and api_key and st.session_state[f"{bot_selection}_index"] is not None:
     with st.spinner("Processing your request..."):
         try:
-            # Create query embedding and search
-            similar_docs = st.session_state.index.similarity_search(user_input, k=2)
+            # Use the correct index for the selected bot
+            similar_docs = st.session_state[f"{bot_selection}_index"].similarity_search(user_input, k=2)
             context = ' '.join([doc.page_content for doc in similar_docs])
             
             # Create structured prompt
