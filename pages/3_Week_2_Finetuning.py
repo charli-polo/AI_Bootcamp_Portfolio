@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import pkg_resources
+from utils.token_manager import get_huggingface_token, set_huggingface_token, validate_huggingface_token
 
 st.set_page_config(
     page_title="Week 2: Finetuning",
@@ -138,7 +139,11 @@ def main():
             help="Get your token from https://huggingface.co/settings/tokens"
         )
         if hf_token:
-            st.session_state.hf_token = hf_token
+            if validate_huggingface_token(hf_token):
+                set_huggingface_token(hf_token)
+                st.success("HuggingFace token set successfully!")
+            else:
+                st.error("Invalid HuggingFace token format")
             
         st.markdown("""
         ### How to get your token:
