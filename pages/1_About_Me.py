@@ -11,7 +11,7 @@ st.set_page_config(
 
 def load_profile_image():
     # Using a real placeholder image service
-    st.image("https://via.placeholder.com/150", width=150)
+    st.image("assets/Amber.png")
 
 def main():
     # Header
