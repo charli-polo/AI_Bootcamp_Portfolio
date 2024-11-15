@@ -136,7 +136,7 @@ Instructions:
 """
 
 # Chat input
-user_input = st.text_input("Enter your message:", placeholder="e.g., Where is my package? or Track my parcel...")
+user_input = st.text_input("Enter your message:", placeholder="e.g., Hello my name is Michael Brown, Where is the parcel I sent Sara Davis?")
 
 # Check for API key and process input
 if user_input and api_key and st.session_state.index is not None:
