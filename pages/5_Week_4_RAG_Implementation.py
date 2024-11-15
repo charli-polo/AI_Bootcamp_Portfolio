@@ -147,6 +147,57 @@ with st.sidebar:
         else:
             st.error("Invalid OpenAI API key")
 
+# Data viewer toggle in sidebar
+with st.sidebar:
+    st.markdown("---")  # Add a visual separator
+    st.header("📊 Data Viewer")
+    show_data = st.toggle("Show Dataset", value=False)
+    
+    if show_data and st.session_state.documents is not None:
+        try:
+            # Convert documents to DataFrame
+            data = []
+            for doc in st.session_state.documents:
+                # Split the content by newlines and create a dictionary
+                content_dict = {}
+                for line in doc.page_content.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        content_dict[key.strip()] = value.strip()
+                data.append(content_dict)
+            
+            df = pd.DataFrame(data)
+            
+            # Display DataFrame with styling
+            st.dataframe(
+                df,
+                use_container_width=True,
+                height=300,
+                hide_index=True,
+                column_config={
+                    col: st.column_config.TextColumn(
+                        col,
+                        width="medium",
+                        help=f"Column containing {col}"
+                    ) for col in df.columns
+                }
+            )
+            
+            # Add download button
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "Download Dataset",
+                csv,
+                "logistics_data.csv",
+                "text/csv",
+                key='download-csv'
+            )
+            
+        except Exception as e:
+            st.error(f"Error displaying data: {str(e)}")
+    elif show_data:
+        st.info("Please load data first by entering a valid API key.")
+
 # Add tab selection at the top
 bot_selection = st.radio(
     "Select Chatbot:",
