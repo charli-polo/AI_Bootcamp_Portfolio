@@ -9,21 +9,25 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.vectorstores import FAISS
 import warnings
 import os
-from utils.token_manager import get_openai_token, set_openai_token, validate_openai_token
+from utils.token_manager import get_openai_client, init_openai
 
 # Initialize OpenAI client with API key
 def init_openai():
-    token = get_openai_token()
-    if not token:
+    client = get_openai_client()
+    if not client:
         st.warning("Please enter your OpenAI API token")
         st.stop()
-    openai.api_key = token
-    return openai
+    return client
 
 # Function to get embeddings using OpenAI API v0.28.1
 def get_embedding(text, model="text-embedding-3-small"):
-    text = str(text).replace("\n", " ")  # Ensure text is string and clean
-    return openai.Embedding.create(
+    client = get_openai_client()
+    if not client:
+        st.warning("Please enter your OpenAI API token")
+        st.stop()
+        
+    text = str(text).replace("\n", " ")
+    return client.Embedding.create(
         input=[text],
         model=model
     )['data'][0]['embedding']
@@ -100,44 +104,12 @@ st.title("📦 LogiLynk: Logistics Support Chatbot")
 # Sidebar for API key
 with st.sidebar:
     st.header("🔑 OpenAI Authentication")
-    openai_api_key = st.text_input(
-        "Enter your OpenAI API key:",
-        type="password",
-        help="Get your API key from https://platform.openai.com/account/api-keys"
-    )
-    if openai_api_key:
-        # Initialize OpenAI with the API key
-        openai_client = init_openai()
-        
-        if not openai_api_key.startswith('sk-'):
-            st.warning('Please enter a valid OpenAI API key!', icon='⚠️')
+    api_key = st.text_input("OpenAI API Key:", type="password")
+    if api_key:
+        if init_openai(api_key):
+            st.success("OpenAI API key set successfully!")
         else:
-            st.success('API key successfully loaded!', icon='✅')
-            
-            # Load data and create embeddings if not already done
-            if 'embeddings' not in st.session_state or st.session_state.embeddings is None:
-                try:
-                    with st.spinner("Loading parcel data and creating embeddings..."):
-                        # Load the dataset
-                        dataframed = pd.read_csv('https://raw.githubusercontent.com/ALGOREX-PH/Day-4-AI-First-Dataset-Live/refs/heads/main/Parcel_Information_Dataset.csv')
-                        
-                        # Create combined text field
-                        dataframed['combined'] = dataframed.apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-                        texts = dataframed['combined'].tolist()
-                        
-                        # Initialize embeddings object
-                        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-                        
-                        # Create FAISS index directly from texts
-                        search_index = FAISS.from_texts(
-                            texts=texts,
-                            embedding=embeddings
-                        )
-                        
-                        st.session_state.index = search_index
-                        st.success("✅ Data loaded and embeddings created!")
-                except Exception as e:
-                    st.error(f"Error creating embeddings: {str(e)}")
+            st.error("Invalid OpenAI API key")
 
 # Chat interface
 st.write("Welcome to LogiLynk! I'm here to help you track packages and answer shipping questions. How can I assist you today?")

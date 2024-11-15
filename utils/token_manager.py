@@ -1,18 +1,28 @@
 import streamlit as st
+import openai
 
 @st.cache_resource
-def get_huggingface_token():
-    """Get cached HuggingFace token"""
-    if "hf_token" not in st.session_state:
-        st.session_state.hf_token = None
-    return st.session_state.hf_token
+def get_openai_client():
+    """Get cached OpenAI client"""
+    if "openai_client" not in st.session_state:
+        st.session_state.openai_client = None
+    return st.session_state.openai_client
 
-@st.cache_resource
-def get_openai_token():
-    """Get cached OpenAI token"""
-    if "openai_token" not in st.session_state:
-        st.session_state.openai_token = None
-    return st.session_state.openai_token
+def init_openai(api_key):
+    """Initialize OpenAI client with API key and cache it"""
+    if not api_key:
+        return None
+        
+    if not api_key.startswith('sk-'):
+        return None
+        
+    try:
+        openai.api_key = api_key
+        st.session_state.openai_client = openai
+        return openai
+    except Exception as e:
+        st.error(f"Error initializing OpenAI client: {e}")
+        return None
 
 def set_huggingface_token(token):
     """Set HuggingFace token and clear cache if changed"""
