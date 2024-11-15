@@ -24,7 +24,7 @@ def main():
         load_profile_image()
         
     with col2:
-        st.header("John Doe")
+        st.header("Amber Teng")
         st.subheader("AI/ML Engineer")
         st.write("""
         👋 Hello! I'm an AI/ML Engineer passionate about building intelligent systems
@@ -33,54 +33,13 @@ def main():
         
         # Contact information
         st.markdown("""
-        📧 Email: john.doe@example.com  
-        🔗 LinkedIn: [linkedin.com/in/johndoe](https://linkedin.com/in/johndoe)  
-        💻 GitHub: [github.com/johndoe](https://github.com/johndoe)
-        """)
-    
-    # Skills section
-    st.header("Skills")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        **Programming Languages**
-        - Python
-        - JavaScript
-        - SQL
-        """)
+        📧 Email: angelamarieteng@gmail.com
+                    
+        🔗 LinkedIn: [linkedin.com/in/angelavteng](https://www.linkedin.com/in/angelavteng)  
         
-    with col2:
-        st.markdown("""
-        **ML/AI**
-        - PyTorch
-        - TensorFlow
-        - Hugging Face
+        💻 GitHub: [github.com/angelaaaateng](https://github.com/angelaaaateng)
         """)
-        
-    with col3:
-        st.markdown("""
-        **Tools & Platforms**
-        - Docker
-        - AWS
-        - Git
-        """)
-    
-    # Experience section
-    st.header("Experience")
-    with st.expander("Senior ML Engineer - Tech Corp (2020-Present)"):
-        st.write("""
-        - Led development of NLP systems for customer service automation
-        - Implemented and deployed RAG systems for knowledge base search
-        - Managed team of 3 ML engineers
-        """)
-        
-    with st.expander("ML Engineer - AI Startup (2018-2020)"):
-        st.write("""
-        - Developed computer vision models for retail analytics
-        - Implemented MLOps practices and CI/CD pipelines
-        - Reduced model training time by 40%
-        """)
+
     
     # Projects section
     st.header("Featured Projects")
@@ -88,18 +47,40 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         with st.container():
-            st.subheader("RAG System for Documentation")
+            st.subheader("LogiLynk: Logistics Support Chatbot")
             st.write("""
-            Built a RAG system using LangChain and OpenAI for 
-            intelligent documentation search and question answering.
+            Built an intelligent chatbot using LangChain, FAISS, and OpenAI for 
+            handling logistics queries and package tracking. Features RAG implementation
+            for accurate context-aware responses.
             """)
             
     with col2:
         with st.container():
-            st.subheader("Fine-tuned LLM for Code Generation")
+            st.subheader("AI Personas & Cultural Heritage")
             st.write("""
-            Fine-tuned CodeBERT model for Python code generation,
-            achieving 85% accuracy on test set.
+            Developed an AI system with multiple personas (AI Archaeologist & Indiana Jones) 
+            for cultural heritage preservation and artifact analysis. Implements OpenAI's 
+            GPT-4 for intelligent artifact examination and cultural insights.
+            """)
+
+    # Second row of projects
+    col3, col4 = st.columns(2)
+    with col3:
+        with st.container():
+            st.subheader("RAG Document Analysis")
+            st.write("""
+            Created a document analysis system using LangChain's FAISS integration
+            for efficient text processing and retrieval. Supports PDF and text documents
+            with intelligent chunking and semantic search.
+            """)
+            
+    with col4:
+        with st.container():
+            st.subheader("AI Persona Creator")
+            st.write("""
+            Engineered a flexible AI persona creation system with customizable 
+            personalities, backgrounds, and knowledge domains. Features persistent
+            state management and dynamic prompt generation.
             """)
 
 if __name__ == "__main__":
