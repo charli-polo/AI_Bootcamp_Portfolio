@@ -108,23 +108,32 @@ def caching_demo():
     2. Some operations (like loading data or ML models) are expensive
     3. Multiple users might need the same data/computations
     
-    ### How Caching Works in Streamlit
-    Streamlit offers two main types of caching:
+    ### Real-World Implementation Example: Token Management
+    Here's how caching is used in this portfolio for API token management:
+
+    1. **Token Caching with `st.cache_resource`**
+       - Stores API tokens (HuggingFace, OpenAI) in memory
+       - Shares tokens across all pages of the app
+       - Persists until app restart or manual cache clear
     
-    1. **`st.cache_data`**: For caching data computations
-        - Creates a new copy of the data each time
-        - Safe for DataFrames, lists, and other data objects
-        - Each user gets their own copy of the data
+    2. **Security Features**
+       - Validates token formats before caching
+       - Uses password fields for secure input
+       - Clears cache when tokens change
     
-    2. **`st.cache_resource`**: For caching global resources
-        - Shares the exact same object across all users
-        - Perfect for ML models and database connections
-        - No data copying, just reference sharing
+    3. **Benefits**
+       - Consistent token management across pages
+       - Reduces repeated token entry
+       - Provides immediate validation feedback
+       - Maintains security best practices
     
-    When a cached function is called, Streamlit:
-    1. Checks if the function was called before with the same inputs
-    2. If yes, returns the cached result
-    3. If no, runs the function and stores the result in cache
+    ```python
+    @st.cache_resource
+    def get_api_token():
+        if "token" not in st.session_state:
+            st.session_state.token = None
+        return st.session_state.token
+    ```
     """)
     
     # Example 1: Basic Data Caching
