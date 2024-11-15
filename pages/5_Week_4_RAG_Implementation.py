@@ -41,6 +41,41 @@ def get_embedding(text, model="text-embedding-3-small"):
         model=model
     )['data'][0]['embedding']
 
+def load_and_process_data(api_key):
+    """Load CSV data and create FAISS index"""
+    if st.session_state.index is None:
+        try:
+            # Load CSV data
+            loader = CSVLoader(
+                file_path="assets/Extended_Parcel_Information_Dataset.csv",
+                encoding="utf-8",
+                csv_args={'delimiter': ','}
+            )
+            documents = loader.load()
+            
+            # Create embeddings with API key
+            embeddings = OpenAIEmbeddings(openai_api_key=api_key)
+            
+            # Create FAISS index
+            st.session_state.index = FAISS.from_documents(documents, embeddings)
+            st.session_state.documents = documents
+            
+            return True
+        except Exception as e:
+            st.error(f"Error loading data: {str(e)}")
+            return False
+    return True
+
+# Initialize session state
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+if 'embeddings' not in st.session_state:
+    st.session_state.embeddings = None
+if 'index' not in st.session_state:
+    st.session_state.index = None
+if 'documents' not in st.session_state:
+    st.session_state.documents = None
+
 # Page config with light theme
 st.set_page_config(
     page_title="Week 4: RAG Implementation",
@@ -97,34 +132,30 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'embeddings' not in st.session_state:
-    st.session_state.embeddings = None
-if 'index' not in st.session_state:
-    st.session_state.index = None
-if 'documents' not in st.session_state:
-    st.session_state.documents = None
-
-# Main content
-st.title("📦 LogiLynk: Logistics Support Chatbot")
-
-# Sidebar for API key
+# Sidebar for API key and data loading
 with st.sidebar:
     st.header("🔑 OpenAI Authentication")
     api_key = st.text_input("OpenAI API Key:", type="password")
     if api_key:
         if init_openai(api_key):
             st.success("OpenAI API key set successfully!")
+            # Initialize data and embeddings with API key
+            if load_and_process_data(api_key):
+                st.success("Data loaded successfully!")
+            else:
+                st.error("Failed to load data")
         else:
             st.error("Invalid OpenAI API key")
 
-# Chat interface
-st.write("Welcome to LogiLynk! I'm here to help you track packages and answer shipping questions. How can I assist you today?")
+# Add tab selection at the top
+bot_selection = st.radio(
+    "Select Chatbot:",
+    ["LogiLynk", "Wells FurGo"],
+    horizontal=True
+)
 
-# System prompt
-System_Prompt = """
+# System prompts
+LOGILYNK_PROMPT = """
 Role: You are LogiLynk, a knowledgeable and empathetic logistics support chatbot specializing in assisting customers with their parcel inquiries. Your mission is to provide accurate, concise, and reassuring information on parcel tracking, delivery status, shipping costs, and resolving common delivery issues.
 
 Instructions:
@@ -135,8 +166,24 @@ Instructions:
 5. Always prioritize customer satisfaction while being truthful and precise
 """
 
+WELLS_FURGO_PROMPT = """
+Role: You are Wells FurGo, a knowledgeable and compassionate logistics support chatbot specializing in the transport and delivery of cat-related products and live cats in the Philippines...
+""" # (your full Wells FurGo prompt here)
+
+# Main content based on selection
+if bot_selection == "LogiLynk":
+    st.title("📦 LogiLynk: Logistics Support Chatbot")
+    st.write("Welcome to LogiLynk! I'm here to help you track packages and answer shipping questions. How can I assist you today?")
+    System_Prompt = LOGILYNK_PROMPT
+    placeholder = "e.g., Hello my name is Michael Brown, Where is the parcel I sent Sara Davis?"
+else:
+    st.title("😺 Wells FurGo: Cat Logistics Support")
+    st.write("Meow there! I'm Wells FurGo, your purr-fessional cat logistics expert. How can I assist you today?")
+    System_Prompt = WELLS_FURGO_PROMPT
+    placeholder = "e.g., I need to ship my cat food to Cebu, or Track my cat's shipment"
+
 # Chat input
-user_input = st.text_input("Enter your message:", placeholder="e.g., Hello my name is Michael Brown, Where is the parcel I sent Sara Davis?")
+user_input = st.text_input("Enter your message:", placeholder=placeholder)
 
 # Check for API key and process input
 if user_input and api_key and st.session_state.index is not None:
@@ -160,8 +207,8 @@ if user_input and api_key and st.session_state.index is not None:
             )
             response = chat.choices[0].message['content']
             
-            # Display response
-            st.write("### LogiLynk Response:")
+            # Display response with appropriate heading
+            st.write(f"### {bot_selection} Response:")
             st.write(response)
             
         except Exception as e:
