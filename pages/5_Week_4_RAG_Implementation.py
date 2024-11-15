@@ -143,31 +143,42 @@ if 'LogiLynk_documents' not in st.session_state:
 if 'Wells FurGo_documents' not in st.session_state:
     st.session_state['Wells FurGo_documents'] = None
 
-# Page config with light theme
+# Move page config to the very top, before any other code
 st.set_page_config(
     page_title="Week 4: RAG Implementation",
     layout="wide",
     initial_sidebar_state="expanded",
-    page_icon="📦",
-    menu_items=None
+    page_icon="📦"
 )
 
-# Custom CSS
+# Update the CSS to fix padding and spacing
 st.markdown("""
 <style>
-    /* Remove top padding/margin */
+    /* Reset padding/margin */
     .block-container {
-        padding-top: 1rem;
+        padding-top: 2rem !important;
         padding-bottom: 0rem;
         padding-left: 5rem;
         padding-right: 5rem;
     }
     
+    /* Ensure radio buttons are visible */
+    .stRadio > label {
+        color: #000000 !important;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    
+    .stRadio > div {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    
     /* Light theme with subtle background */
     .stApp {
         background: linear-gradient(
-            rgba(255, 255, 255, 0.85),
-            rgba(255, 255, 255, 0.85)
+            rgba(255, 255, 255, 0.9),
+            rgba(255, 255, 255, 0.9)
         ),
         url('https://images.pexels.com/photos/4483610/pexels-photo-4483610.jpeg');
         background-size: cover;
@@ -176,9 +187,15 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* Make all text black */
+    /* Make all text black and visible */
     .stApp, [data-testid="stSidebarContent"], .element-container, p, h1, h2, h3, label {
         color: #000000 !important;
+    }
+    
+    /* Add spacing between elements */
+    .stRadio {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
     }
     
     /* Style for input fields */
@@ -199,12 +216,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Move bot selection before sidebar
-# Add tab selection at the top (after CSS, before sidebar)
+# Add a title at the top of the page
+st.title("🤖 AI Logistics Assistant")
+
+# Then the bot selection
 bot_selection = st.radio(
     "Select Chatbot:",
     ["LogiLynk", "Wells FurGo"],
-    horizontal=True
+    horizontal=True,
+    key="bot_selection"
 )
 
 # Then the sidebar section
